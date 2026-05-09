@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual Environment
+venv/
+.env/
+
+# VSCode / Cursor
+.vscode/
+.idea/
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Memória e conversas pessoais
+memory.json
+conversations/
+
+# Ambiente local
+.env
+.env.local
+
+# Python cache
+.pytest_cache/
+
+# Build
+dist/
+build/
+
+# Uvicorn
+*.pid
+
+# Node (caso use futuramente)
+node_modules/
