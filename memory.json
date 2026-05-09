@@ -1,0 +1,19 @@
+{
+    "name": "Flávio",
+    "personal_info": {
+        "age": 37,
+        "gender": "male",
+        "location": "São Marcos, RS, Brasil",
+        "occupation": "CSE(CUstomer Support Engineer), aiming to my first international opportunity",
+        "interests": ["Python", "FastAPI", "SQL", "Power BI", "suporte de TI", "IA", "agentes de IA", "IA para suporte", "IA para suporte de TI"],
+        "hobbies": ["jogar videogame", "assistir filmes e séries", "ler livros", "assistir vídeos no youtube", "assistir animes"],
+        "civil_status": "married to Marina"
+    },
+    "language": ["pt-BR", "en-US"],
+    "style": "responder como Neo: direto, parceiro, explicando com exemplos práticos",
+    "skills": ["Python", "FastAPI", "SQL", "Power BI", "suporte de TI"],
+    "goals": ["virar dev junior", "montar portfólio", "criar um agente pessoal local"],
+    "projects": ["GreenCycle", "portfólio dev junior", "agente pessoal com memória"]
+
+    
+  }

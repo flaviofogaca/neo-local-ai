@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Neo</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #111827;
+      color: #f9fafb;
+      margin: 40px auto;
+      padding: 20px;
+    }
+
+    .layout {
+      display: flex;
+      gap: 20px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .sidebar {
+      width: 260px;
+      background: #1f2937;
+      border-radius: 12px;
+      padding: 16px;
+      height: 80vh;
+      overflow-y: auto;
+    }
+
+    .main {
+      flex: 1;
+    }
+
+    .sidebar h2 {
+      margin-top: 0;
+    }
+
+    .new-chat-btn {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      background: #2563eb;
+      color: white;
+      margin-bottom: 20px;
+    }
+
+    #chat {
+      background: #1f2937;
+      border-radius: 12px;
+      padding: 20px;
+      min-height: 400px;
+      margin-bottom: 20px;
+      overflow-y: auto;
+      scroll-behavior: smooth;
+    }
+
+    .msg {
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+
+    .user {
+      color: #95989c;
+    }
+
+    .neo {
+      color: #ffffff;
+    }
+
+    .input-container {
+      position: relative;
+    }
+
+    textarea {
+      width: 100%;
+      height: 90px;
+      border-radius: 12px;
+      padding: 14px 60px 14px 14px;
+      font-size: 16px;
+      resize: none;
+      box-sizing: border-box;
+    }
+
+    button {
+      border: none;
+      cursor: pointer;
+    }
+
+    .send-btn {
+      position: absolute;
+      right: 12px;
+      bottom: 12px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #000000;
+      color: white;
+      font-size: 22px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: 0.2s;
+    }
+
+    .send-btn:hover {
+      background: #1d4ed8;
+    }
+
+    .conversation-item {
+      background: #111827;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: 0.2s;
+      font-size: 13px;
+      word-break: break-word;
+    }
+
+    .conversation-item {
+      background: #111827;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: 0.2s;
+
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .conversation-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .delete-btn {
+      background: transparent;
+      color: #ef4444;
+      font-size: 14px;
+    }
+
+    .conversation-name {
+      flex: 1;
+      word-break: break-word;
+    }
+
+    .rename-btn {
+      background: transparent;
+      color: white;
+      font-size: 14px;
+    }
+
+    pre {
+      background: #111827;
+      padding: 12px;
+      border-radius: 8px;
+      overflow-x: auto;
+    }
+
+    code {
+      background: #111827;
+      padding: 2px 4px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="layout">
+    <div class="sidebar">
+      <h2>Neo</h2>
+
+      <button class="new-chat-btn" onclick="newChat()">
+        + Nova conversa
+      </button>
+
+      <div id="conversation-list"></div>
+    </div>
+
+    <div class="main">
+      <div id="chat"></div>
+
+      <div class="input-container">
+        <textarea id="message" placeholder="Manda a boa..."></textarea>
+
+        <button class="send-btn" onclick="sendMessage()" title="Enviar">
+          ↑
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let history = [];
+
+    function scrollToBottom() {
+      const chat = document.getElementById("chat");
+
+      chat.scrollTo({
+        top: chat.scrollHeight,
+        behavior: "smooth"
+      });
+    }
+
+    function addThinking() {
+      const chat = document.getElementById("chat");
+      const thinkingId = "thinking-" + Date.now();
+
+      chat.innerHTML += `
+        <div class="msg neo" id="${thinkingId}">
+          <strong>Neo:</strong> Pensando...
+        </div>
+      `;
+
+      scrollToBottom();
+      return thinkingId;
+    }
+
+    function replaceThinking(id, response) {
+      const element = document.getElementById(id);
+
+      if (element) {
+        element.innerHTML = `<strong>Neo:</strong> ${marked.parse(response)}`;
+      }
+    }
+
+    async function newChat() {
+      history = [];
+      document.getElementById("chat").innerHTML = "";
+
+      await fetch("/new-chat", {
+        method: "POST"
+      });
+
+      await loadConversations();
+    }
+
+    async function loadConversations() {
+      const response = await fetch("/conversations");
+      const data = await response.json();
+
+      const list = document.getElementById("conversation-list");
+      list.innerHTML = "";
+
+      data.conversations.forEach(file => {
+
+        const encodedFile = encodeURIComponent(file);
+
+        list.innerHTML += `
+          <div class="conversation-item">
+
+            <div 
+              class="conversation-name"
+              onclick="loadConversation('${encodedFile}')"
+            >
+              ${file.replace(".json", "")}
+            </div>
+
+            <div class="conversation-actions">
+
+              <button 
+                class="rename-btn"
+                onclick="event.stopPropagation(); renameConversation('${file}')"
+              >
+                ✏️
+              </button>
+
+              <button 
+                class="delete-btn"
+                onclick="event.stopPropagation(); deleteConversation('${file}')"
+              >
+                🗑️
+              </button>
+
+          </div>
+
+       </div>
+    `;
+      });
+    }
+
+    async function renameConversation(oldName) {
+
+      const newName = prompt("Novo nome da conversa:");
+
+      if (!newName) {
+        return;
+      }
+
+      await fetch("/rename-conversation", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          old_name: oldName,
+          new_name: newName
+        })
+      });
+    }
+
+    async function loadConversation(filename) {
+      const response = await fetch(`/conversations/${filename}`);
+      const data = await response.json();
+
+      const chat = document.getElementById("chat");
+      chat.innerHTML = "";
+      history = [];
+
+      data.messages.forEach(msg => {
+        const className = msg.role === "user" ? "user" : "neo";
+        const speaker = msg.role === "user" ? "Você" : "Neo";
+
+        chat.innerHTML += `
+          <div class="msg ${className}">
+            <strong>${speaker}:</strong> ${marked.parse(msg.content)}
+          </div>
+        `;
+
+        history.push({
+          role: msg.role,
+          content: msg.content
+        });
+      });
+
+      scrollToBottom();
+    }
+
+    async function deleteConversation(filename) {
+
+      const confirmed = confirm(
+        `Deseja apagar:\n\n${filename.replace(".json", "")}?`
+      );
+
+      if (!confirmed) return;
+
+      await fetch(`/delete-conversation/${encodeURIComponent(filename)}`, {
+        method: "DELETE"
+      });
+
+      loadConversations();
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById("message");
+      const chat = document.getElementById("chat");
+      const message = input.value.trim();
+
+      if (!message) return;
+
+      chat.innerHTML += `<div class="msg user"><strong>Você:</strong> ${message}</div>`;
+
+      history.push({
+        role: "user",
+        content: message
+      });
+
+      input.value = "";
+
+      const thinkingId = addThinking();
+      let fullResponse = "";
+
+      try {
+        const response = await fetch("/chat-stream", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            message: message,
+            history: history
+          })
+        });
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+
+        while (true) {
+          const { value, done } = await reader.read();
+
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          fullResponse += chunk;
+
+          replaceThinking(thinkingId, fullResponse);
+          scrollToBottom();
+        }
+
+        history.push({
+          role: "neo",
+          content: fullResponse
+        });
+
+        history = history.slice(-10);
+
+      } catch (error) {
+        replaceThinking(thinkingId, "Erro ao gerar resposta.");
+      }
+
+      scrollToBottom();
+    }
+
+    const textarea = document.getElementById("message");
+
+    textarea.addEventListener("keydown", function (event) {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
+      }
+    });
+
+    loadConversations();
+  </script>
+</body>
+
+</html>
