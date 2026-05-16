@@ -7,36 +7,39 @@
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       font-family: Arial, sans-serif;
       background: #111827;
       color: #f9fafb;
-      margin: 40px auto;
-      padding: 20px;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      overflow: hidden;
     }
 
     .layout {
       display: flex;
-      gap: 20px;
-      max-width: 1100px;
-      margin: 0 auto;
+      width: 100%;
+      height: 100vh;
     }
 
     .sidebar {
-      width: 260px;
+      width: 300px;
       background: #1f2937;
-      border-radius: 12px;
-      padding: 16px;
-      height: 80vh;
+      height: 100vh;
+      padding: 20px;
       overflow-y: auto;
-    }
-
-    .main {
-      flex: 1;
+      flex-shrink: 0;
+      border-right: 1px solid #374151;
     }
 
     .sidebar h2 {
-      margin-top: 0;
+      margin: 0 0 20px 0;
+      font-size: 24px;
     }
 
     .new-chat-btn {
@@ -46,33 +49,106 @@
       background: #2563eb;
       color: white;
       margin-bottom: 20px;
+      font-weight: bold;
+    }
+
+    .main {
+      flex: 1;
+      height: 100vh;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .chat-header {
+      background: #1f2937;
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border: 1px solid #374151;
+      flex-shrink: 0;
+    }
+
+    .chat-header h1 {
+      margin: 0;
+      font-size: 20px;
+      color: white;
+    }
+
+    .chat-header span {
+      color: #9ca3af;
+      font-size: 14px;
+    }
+
+    .status-pill {
+      background: #064e3b;
+      color: #86efac;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: bold;
     }
 
     #chat {
+      flex: 1;
       background: #1f2937;
       border-radius: 12px;
-      padding: 20px;
-      min-height: 400px;
-      margin-bottom: 20px;
+      padding: 24px;
+      margin-bottom: 16px;
       overflow-y: auto;
       scroll-behavior: smooth;
+      min-height: 0;
     }
 
-    .msg {
+    .message-row {
+      display: flex;
       margin-bottom: 16px;
-      line-height: 1.5;
     }
 
-    .user {
-      color: #95989c;
+    .message-row.user {
+      justify-content: flex-end;
     }
 
-    .neo {
-      color: #ffffff;
+    .message-row.neo {
+      justify-content: flex-start;
+    }
+
+    .message-bubble {
+      max-width: 75%;
+      padding: 14px 16px;
+      border-radius: 16px;
+      line-height: 1.6;
+      word-break: break-word;
+    }
+
+    .message-row.user .message-bubble {
+      background: #2563eb;
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+
+    .message-row.neo .message-bubble {
+      background: #374151;
+      color: white;
+      border-bottom-left-radius: 4px;
+    }
+
+    .message-bubble p {
+      margin-top: 0;
+      margin-bottom: 0.6rem;
+    }
+
+    .message-bubble p:last-child {
+      margin-bottom: 0;
     }
 
     .input-container {
       position: relative;
+      flex-shrink: 0;
     }
 
     textarea {
@@ -82,7 +158,15 @@
       padding: 14px 60px 14px 14px;
       font-size: 16px;
       resize: none;
-      box-sizing: border-box;
+      border: 1px solid #374151;
+      outline: none;
+      background: #f9fafb;
+      color: #111827;
+    }
+
+    textarea:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.35);
     }
 
     button {
@@ -94,8 +178,8 @@
       position: absolute;
       right: 12px;
       bottom: 12px;
-      width: 20px;
-      height: 20px;
+      width: 32px;
+      height: 32px;
       border-radius: 50%;
       background: #000000;
       color: white;
@@ -118,44 +202,41 @@
       margin-bottom: 10px;
       cursor: pointer;
       transition: 0.2s;
-      font-size: 13px;
-      word-break: break-word;
-    }
-
-    .conversation-item {
-      background: #111827;
-      padding: 10px;
-      border-radius: 8px;
-      margin-bottom: 10px;
-      cursor: pointer;
-      transition: 0.2s;
-
       display: flex;
       justify-content: space-between;
       align-items: center;
       gap: 10px;
     }
 
+    .conversation-item:hover {
+      background: #374151;
+    }
+
     .conversation-actions {
       display: flex;
       gap: 6px;
-    }
-
-    .delete-btn {
-      background: transparent;
-      color: #ef4444;
-      font-size: 14px;
+      flex-shrink: 0;
     }
 
     .conversation-name {
       flex: 1;
       word-break: break-word;
+      font-size: 13px;
+    }
+
+    .rename-btn,
+    .delete-btn {
+      background: transparent;
+      font-size: 14px;
+      padding: 2px;
     }
 
     .rename-btn {
-      background: transparent;
       color: white;
-      font-size: 14px;
+    }
+
+    .delete-btn {
+      color: #ef4444;
     }
 
     pre {
@@ -169,6 +250,43 @@
       background: #111827;
       padding: 2px 4px;
       border-radius: 4px;
+    }
+
+    .typing-dots {
+      display: inline-flex;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .typing-dots span {
+      width: 6px;
+      height: 6px;
+      background: #d1d5db;
+      border-radius: 50%;
+      animation: blink 1.4s infinite both;
+    }
+
+    .typing-dots span:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .typing-dots span:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes blink {
+
+      0%,
+      80%,
+      100% {
+        opacity: 0.25;
+        transform: scale(0.8);
+      }
+
+      40% {
+        opacity: 1;
+        transform: scale(1);
+      }
     }
   </style>
 </head>
@@ -186,6 +304,17 @@
     </div>
 
     <div class="main">
+      <div class="chat-header">
+        <div>
+          <h1>Neo Local AI</h1>
+          <span>gemma4:26b • Local • Ollama</span>
+        </div>
+
+        <div class="status-pill">
+          Online
+        </div>
+      </div>
+
       <div id="chat"></div>
 
       <div class="input-container">
@@ -201,6 +330,19 @@
   <script>
     let history = [];
 
+    function renderMessage(role, content) {
+      const chat = document.getElementById("chat");
+      const className = role === "user" ? "user" : "neo";
+
+      chat.innerHTML += `
+        <div class="message-row ${className}">
+          <div class="message-bubble">
+            ${marked.parse(content)}
+          </div>
+        </div>
+      `;
+    }
+
     function scrollToBottom() {
       const chat = document.getElementById("chat");
 
@@ -215,10 +357,16 @@
       const thinkingId = "thinking-" + Date.now();
 
       chat.innerHTML += `
-        <div class="msg neo" id="${thinkingId}">
-          <strong>Neo:</strong> Pensando...
+    <div class="message-row neo" id="${thinkingId}">
+      <div class="message-bubble">
+        <div class="typing-dots">
+          <span></span>
+          <span></span>
+          <span></span>
         </div>
-      `;
+      </div>
+    </div>
+  `;
 
       scrollToBottom();
       return thinkingId;
@@ -228,7 +376,11 @@
       const element = document.getElementById(id);
 
       if (element) {
-        element.innerHTML = `<strong>Neo:</strong> ${marked.parse(response)}`;
+        element.innerHTML = `
+          <div class="message-bubble">
+            ${marked.parse(response)}
+          </div>
+        `;
       }
     }
 
@@ -251,13 +403,11 @@
       list.innerHTML = "";
 
       data.conversations.forEach(file => {
-
         const encodedFile = encodeURIComponent(file);
 
         list.innerHTML += `
           <div class="conversation-item">
-
-            <div 
+            <div
               class="conversation-name"
               onclick="loadConversation('${encodedFile}')"
             >
@@ -265,30 +415,26 @@
             </div>
 
             <div class="conversation-actions">
-
-              <button 
+              <button
                 class="rename-btn"
                 onclick="event.stopPropagation(); renameConversation('${file}')"
               >
                 ✏️
               </button>
 
-              <button 
+              <button
                 class="delete-btn"
                 onclick="event.stopPropagation(); deleteConversation('${file}')"
               >
                 🗑️
               </button>
-
+            </div>
           </div>
-
-       </div>
-    `;
+        `;
       });
     }
 
     async function renameConversation(oldName) {
-
       const newName = prompt("Novo nome da conversa:");
 
       if (!newName) {
@@ -305,6 +451,8 @@
           new_name: newName
         })
       });
+
+      await loadConversations();
     }
 
     async function loadConversation(filename) {
@@ -316,14 +464,7 @@
       history = [];
 
       data.messages.forEach(msg => {
-        const className = msg.role === "user" ? "user" : "neo";
-        const speaker = msg.role === "user" ? "Você" : "Neo";
-
-        chat.innerHTML += `
-          <div class="msg ${className}">
-            <strong>${speaker}:</strong> ${marked.parse(msg.content)}
-          </div>
-        `;
+        renderMessage(msg.role, msg.content);
 
         history.push({
           role: msg.role,
@@ -335,7 +476,6 @@
     }
 
     async function deleteConversation(filename) {
-
       const confirmed = confirm(
         `Deseja apagar:\n\n${filename.replace(".json", "")}?`
       );
@@ -346,17 +486,16 @@
         method: "DELETE"
       });
 
-      loadConversations();
+      await loadConversations();
     }
 
     async function sendMessage() {
       const input = document.getElementById("message");
-      const chat = document.getElementById("chat");
       const message = input.value.trim();
 
       if (!message) return;
 
-      chat.innerHTML += `<div class="msg user"><strong>Você:</strong> ${message}</div>`;
+      renderMessage("user", message);
 
       history.push({
         role: "user",
