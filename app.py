@@ -25,10 +25,13 @@ OLLAMA_URL = "http://localhost:11434/api/generate"
 MODEL = "gemma4:26b"
 
 app = FastAPI()
+
 conversation_history = []
+active_conversation_file = None
 
 CONVERSATIONS_DIR = "conversations"
 os.makedirs(CONVERSATIONS_DIR, exist_ok=True)
+
 
 def load_memory():
     with open("memory.json", "r", encoding="utf-8") as file:
@@ -41,6 +44,38 @@ def save_memory(new_data):
 
     with open("memory.json", "w", encoding="utf-8") as file:
         json.dump(memory, file, ensure_ascii=False, indent=2)
+
+
+def create_conversation_file():
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    filename = f"conversation_{timestamp}.json"
+    filepath = os.path.join(CONVERSATIONS_DIR, filename)
+
+    data = {"created_at": timestamp, "messages": []}
+
+    with open(filepath, "w", encoding="utf-8") as file:
+        json.dump(data, file, ensure_ascii=False, indent=2)
+
+    return filename
+
+
+def save_active_conversation():
+    global active_conversation_file
+
+    if not active_conversation_file:
+        active_conversation_file = create_conversation_file()
+
+    filepath = os.path.join(CONVERSATIONS_DIR, active_conversation_file)
+
+    data = {
+        "created_at": datetime.now().strftime("%Y-%m-%d_%H-%M-%S"),
+        "messages": conversation_history,
+    }
+
+    with open(filepath, "w", encoding="utf-8") as file:
+        json.dump(data, file, ensure_ascii=False, indent=2)
+
+    return active_conversation_file
 
 
 def build_history_text(history=None):
@@ -124,11 +159,7 @@ def handle_memory_action(response_text):
 def ask_ollama(user_message, history=None):
     prompt = build_prompt(user_message, history)
 
-    payload = {
-        "model": MODEL,
-        "prompt": prompt,
-        "stream": False
-    }
+    payload = {"model": MODEL, "prompt": prompt, "stream": False}
 
     response = requests.post(OLLAMA_URL, json=payload)
     response.raise_for_status()
@@ -138,14 +169,88 @@ def ask_ollama(user_message, history=None):
     return handle_memory_action(response_text)
 
 
+def generate_conversation_title(first_message):
+
+    prompt = f"""
+Crie um título curto para uma conversa.
+
+Regras:
+- máximo 5 palavras
+- sem aspas
+- sem ponto final
+- responda apenas o título
+
+Mensagem:
+{first_message}
+"""
+
+    payload = {"model": MODEL, "prompt": prompt, "stream": False}
+
+    try:
+
+        response = requests.post(OLLAMA_URL, json=payload)
+
+        response.raise_for_status()
+
+        title = response.json()["response"].strip()
+
+        invalid_chars = ["\\", "/", ":", "*", "?", '"', "<", ">", "|"]
+
+        for char in invalid_chars:
+            title = title.replace(char, "")
+
+        return title[:60]
+
+    except:
+        return None
+
+
+def auto_rename_conversation(first_message):
+
+    global active_conversation_file
+
+    if not active_conversation_file:
+        return
+
+    if not active_conversation_file.startswith("conversation_"):
+        return
+
+    title = generate_conversation_title(first_message)
+
+    if not title:
+        return
+
+    new_filename = f"{title}.json"
+
+    old_path = os.path.join(CONVERSATIONS_DIR, active_conversation_file)
+
+    new_path = os.path.join(CONVERSATIONS_DIR, new_filename)
+
+    counter = 1
+
+    while os.path.exists(new_path):
+
+        new_filename = f"{title}_{counter}.json"
+
+        new_path = os.path.join(CONVERSATIONS_DIR, new_filename)
+
+        counter += 1
+
+    os.rename(old_path, new_path)
+
+    active_conversation_file = new_filename
+
+
 def stream_ollama(user_message, history=None):
+    global conversation_history
+    global active_conversation_file
+
+    if not active_conversation_file:
+        active_conversation_file = create_conversation_file()
+
     prompt = build_prompt(user_message, history)
 
-    payload = {
-        "model": MODEL,
-        "prompt": prompt,
-        "stream": True
-    }
+    payload = {"model": MODEL, "prompt": prompt, "stream": True}
 
     full_response = ""
 
@@ -169,38 +274,20 @@ def stream_ollama(user_message, history=None):
                 if final_response != full_response:
                     yield final_response
 
-                conversation_history.append({
-                    "role": "user",
-                    "content": user_message
-                })
+                conversation_history.append({"role": "user", "content": user_message})
 
-                conversation_history.append({
-                    "role": "neo",
-                    "content": final_response
-                })
+                conversation_history.append({"role": "neo", "content": final_response})
 
                 while len(conversation_history) > 10:
                     conversation_history.pop(0)
 
+                save_active_conversation()
+
+
+                if len(conversation_history) == 2:
+                    auto_rename_conversation(user_message)
+
                 break
-
-def save_current_conversation():
-    if not conversation_history:
-        return None
-
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    filename = f"conversation_{timestamp}.json"
-    filepath = os.path.join(CONVERSATIONS_DIR, filename)
-
-    data = {
-        "created_at": timestamp,
-        "messages": conversation_history
-    }
-
-    with open(filepath, "w", encoding="utf-8") as file:
-        json.dump(data, file, ensure_ascii=False, indent=2)
-
-    return filename
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -212,29 +299,27 @@ def home():
 @app.post("/chat")
 def chat(request: ChatRequest):
     global conversation_history
+    global active_conversation_file
+
+    if not active_conversation_file:
+        active_conversation_file = create_conversation_file()
 
     response = ask_ollama(request.message, conversation_history)
 
-    conversation_history.append({
-        "role": "user",
-        "content": request.message
-    })
+    conversation_history.append({"role": "user", "content": request.message})
 
-    conversation_history.append({
-        "role": "neo",
-        "content": response
-    })
+    conversation_history.append({"role": "neo", "content": response})
 
     conversation_history = conversation_history[-10:]
+    save_active_conversation()
 
-    return {"response": response}
+    return {"response": response, "active_conversation": active_conversation_file}
 
 
 @app.post("/chat-stream")
 def chat_stream(request: ChatRequest):
     return StreamingResponse(
-        stream_ollama(request.message, conversation_history),
-        media_type="text/plain"
+        stream_ollama(request.message, conversation_history), media_type="text/plain"
     )
 
 
@@ -242,20 +327,21 @@ def chat_stream(request: ChatRequest):
 def memory():
     return load_memory()
 
+
 @app.post("/new-chat")
 def new_chat():
     global conversation_history
+    global active_conversation_file
 
-    saved_file = save_current_conversation()
     conversation_history = []
+    active_conversation_file = None
 
-    return {
-        "status": "ok",
-        "saved_file": saved_file
-    }
+    return {"status": "ok"}
+
 
 @app.post("/rename-conversation")
 def rename_conversation(data: dict):
+    global active_conversation_file
 
     old_name = data.get("old_name")
     new_name = data.get("new_name")
@@ -265,7 +351,6 @@ def rename_conversation(data: dict):
 
     old_path = os.path.join(CONVERSATIONS_DIR, old_name)
 
-    # garante .json
     if not new_name.endswith(".json"):
         new_name += ".json"
 
@@ -274,41 +359,55 @@ def rename_conversation(data: dict):
     if os.path.exists(old_path):
         os.rename(old_path, new_path)
 
-    return {
-        "status": "ok"
-    }
+        if active_conversation_file == old_name:
+            active_conversation_file = new_name
+
+    return {"status": "ok", "new_name": new_name}
+
 
 @app.get("/conversations")
 def get_conversations():
     files = os.listdir(CONVERSATIONS_DIR)
-
     files.sort(reverse=True)
 
-    return {
-        "conversations": files
-    }
+    return {"conversations": files, "active_conversation": active_conversation_file}
+
 
 @app.get("/conversations/{filename}")
 def get_conversation(filename: str):
+    global conversation_history
+    global active_conversation_file
+
     filepath = os.path.join(CONVERSATIONS_DIR, filename)
 
     if not os.path.exists(filepath):
         return {"messages": []}
 
     with open(filepath, "r", encoding="utf-8") as file:
-        return json.load(file)
+        data = json.load(file)
+
+    conversation_history = data.get("messages", [])[-10:]
+    active_conversation_file = filename
+
+    return data
+
 
 @app.delete("/delete-conversation/{filename}")
 def delete_conversation(filename: str):
+    global active_conversation_file
+    global conversation_history
 
     filepath = os.path.join(CONVERSATIONS_DIR, filename)
 
     if os.path.exists(filepath):
         os.remove(filepath)
 
-    return {
-        "status": "ok"
-    }
+    if active_conversation_file == filename:
+        active_conversation_file = None
+        conversation_history = []
+
+    return {"status": "ok"}
+
 
 def open_browser():
     webbrowser.open("http://localhost:8000")

@@ -4,6 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <title>Neo</title>
+
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
   <style>
@@ -212,6 +213,14 @@
       background: #374151;
     }
 
+    .conversation-item.active {
+      background: #2563eb;
+    }
+
+    .conversation-item.active:hover {
+      background: #1d4ed8;
+    }
+
     .conversation-actions {
       display: flex;
       gap: 6px;
@@ -236,7 +245,7 @@
     }
 
     .delete-btn {
-      color: #ef4444;
+      color: #fecaca;
     }
 
     pre {
@@ -292,8 +301,11 @@
 </head>
 
 <body>
+
   <div class="layout">
+
     <div class="sidebar">
+
       <h2>Neo</h2>
 
       <button class="new-chat-btn" onclick="newChat()">
@@ -301,10 +313,13 @@
       </button>
 
       <div id="conversation-list"></div>
+
     </div>
 
     <div class="main">
+
       <div class="chat-header">
+
         <div>
           <h1>Neo Local AI</h1>
           <span>gemma4:26b • Local • Ollama</span>
@@ -313,22 +328,32 @@
         <div class="status-pill">
           Online
         </div>
+
       </div>
 
       <div id="chat"></div>
 
       <div class="input-container">
+
         <textarea id="message" placeholder="Manda a boa..."></textarea>
 
         <button class="send-btn" onclick="sendMessage()" title="Enviar">
           ↑
         </button>
+
       </div>
+
     </div>
+
   </div>
 
   <script>
     let history = [];
+    let activeConversation = null;
+
+    function formatConversationName(fileName) {
+      return fileName.replace(".json", "");
+    }
 
     function renderMessage(role, content) {
       const chat = document.getElementById("chat");
@@ -357,18 +382,19 @@
       const thinkingId = "thinking-" + Date.now();
 
       chat.innerHTML += `
-    <div class="message-row neo" id="${thinkingId}">
-      <div class="message-bubble">
-        <div class="typing-dots">
-          <span></span>
-          <span></span>
-          <span></span>
+        <div class="message-row neo" id="${thinkingId}">
+          <div class="message-bubble">
+            <div class="typing-dots">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-  `;
+      `;
 
       scrollToBottom();
+
       return thinkingId;
     }
 
@@ -386,6 +412,8 @@
 
     async function newChat() {
       history = [];
+      activeConversation = null;
+
       document.getElementById("chat").innerHTML = "";
 
       await fetch("/new-chat", {
@@ -400,20 +428,22 @@
       const data = await response.json();
 
       const list = document.getElementById("conversation-list");
+
       list.innerHTML = "";
 
       data.conversations.forEach(file => {
         const encodedFile = encodeURIComponent(file);
+        const activeClass = activeConversation === file ? "active" : "";
 
         list.innerHTML += `
-          <div class="conversation-item">
+          <div class="conversation-item ${activeClass}">
             <div
               class="conversation-name"
               onclick="loadConversation('${encodedFile}')"
             >
-              ${file.replace(".json", "")}
+              ${formatConversationName(file)}
             </div>
-
+  
             <div class="conversation-actions">
               <button
                 class="rename-btn"
@@ -421,7 +451,7 @@
               >
                 ✏️
               </button>
-
+  
               <button
                 class="delete-btn"
                 onclick="event.stopPropagation(); deleteConversation('${file}')"
@@ -452,15 +482,28 @@
         })
       });
 
+      if (activeConversation === oldName) {
+        activeConversation =
+          newName.endsWith(".json")
+            ? newName
+            : `${newName}.json`;
+      }
+
       await loadConversations();
     }
 
     async function loadConversation(filename) {
+      activeConversation = decodeURIComponent(filename);
+
+      await loadConversations();
+
       const response = await fetch(`/conversations/${filename}`);
       const data = await response.json();
 
       const chat = document.getElementById("chat");
+
       chat.innerHTML = "";
+
       history = [];
 
       data.messages.forEach(msg => {
@@ -477,7 +520,7 @@
 
     async function deleteConversation(filename) {
       const confirmed = confirm(
-        `Deseja apagar:\n\n${filename.replace(".json", "")}?`
+        `Deseja apagar:\n\n${formatConversationName(filename)}?`
       );
 
       if (!confirmed) return;
@@ -485,6 +528,12 @@
       await fetch(`/delete-conversation/${encodeURIComponent(filename)}`, {
         method: "DELETE"
       });
+
+      if (activeConversation === filename) {
+        activeConversation = null;
+        document.getElementById("chat").innerHTML = "";
+        history = [];
+      }
 
       await loadConversations();
     }
@@ -505,6 +554,7 @@
       input.value = "";
 
       const thinkingId = addThinking();
+
       let fullResponse = "";
 
       try {
@@ -528,9 +578,11 @@
           if (done) break;
 
           const chunk = decoder.decode(value, { stream: true });
+
           fullResponse += chunk;
 
           replaceThinking(thinkingId, fullResponse);
+
           scrollToBottom();
         }
 
@@ -541,8 +593,13 @@
 
         history = history.slice(-10);
 
+        await loadConversations();
+
       } catch (error) {
-        replaceThinking(thinkingId, "Erro ao gerar resposta.");
+        replaceThinking(
+          thinkingId,
+          "Erro ao gerar resposta."
+        );
       }
 
       scrollToBottom();
@@ -550,15 +607,22 @@
 
     const textarea = document.getElementById("message");
 
-    textarea.addEventListener("keydown", function (event) {
-      if (event.key === "Enter" && !event.shiftKey) {
-        event.preventDefault();
-        sendMessage();
+    textarea.addEventListener(
+      "keydown",
+      function (event) {
+        if (
+          event.key === "Enter" &&
+          !event.shiftKey
+        ) {
+          event.preventDefault();
+          sendMessage();
+        }
       }
-    });
+    );
 
     loadConversations();
   </script>
+
 </body>
 
 </html>
