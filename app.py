@@ -8,6 +8,8 @@ from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, StreamingResponse
 from pydantic import BaseModel
 from typing import List, Optional
+from vector_memory import save_memory as save_vector_memory
+from vector_memory import search_memory
 import uvicorn
 
 
@@ -22,7 +24,7 @@ class ChatRequest(BaseModel):
 
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
-MODEL = "gemma4:26b"
+MODEL = "gemma3:4b"
 
 app = FastAPI()
 
@@ -94,9 +96,27 @@ def build_history_text(history=None):
     return history_text
 
 
+def build_vector_context(user_message):
+    try:
+        results = search_memory(user_message, limit=3)
+
+        documents = results.get("documents", [[]])[0]
+
+        if not documents:
+            return ""
+
+        context = "\n".join(f"- {doc}" for doc in documents)
+
+        return context
+
+    except Exception:
+        return ""
+
+
 def build_prompt(user_message, history=None):
     memory = load_memory()
     history_text = build_history_text(history)
+    vector_context = build_vector_context(user_message)
 
     system_prompt = f"""
 Você é o Neo, assistente pessoal do Flávio.
@@ -133,6 +153,8 @@ Nunca misture texto com JSON.
 
     return (
         system_prompt
+        + "\n\nMEMÓRIAS RELEVANTES RECUPERADAS:\n"
+        + vector_context
         + "\n\nCONVERSA RECENTE, use como contexto principal quando necessário:\n"
         + history_text
         + "\n\nMENSAGEM ATUAL DO USUÁRIO:\n"
@@ -278,11 +300,18 @@ def stream_ollama(user_message, history=None):
 
                 conversation_history.append({"role": "neo", "content": final_response})
 
+                save_vector_memory(
+                    f"Usuário: {user_message}\nNeo: {final_response}",
+                    {
+                        "type": "conversation",
+                        "source": active_conversation_file or "active_chat"
+                    }
+                )
+
                 while len(conversation_history) > 10:
                     conversation_history.pop(0)
 
                 save_active_conversation()
-
 
                 if len(conversation_history) == 2:
                     auto_rename_conversation(user_message)

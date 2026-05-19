@@ -152,17 +152,37 @@
       flex-shrink: 0;
     }
 
+    .send-btn.disabled,
+    .send-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: scale(0.95);
+    }
+
     textarea {
       width: 100%;
-      height: 90px;
+      min-height: 90px;
+      max-height: 220px;
+
       border-radius: 12px;
       padding: 14px 60px 14px 14px;
+
       font-size: 16px;
+      line-height: 1.5;
+
       resize: none;
+      overflow-y: auto;
+
       border: 1px solid #374151;
       outline: none;
+
       background: #f9fafb;
       color: #111827;
+
+      transition:
+        border-color 0.2s,
+        box-shadow 0.2s,
+        height 0.1s ease;
     }
 
     textarea:focus {
@@ -179,21 +199,107 @@
       position: absolute;
       right: 12px;
       bottom: 12px;
-      width: 32px;
-      height: 32px;
+
+      width: 36px;
+      height: 36px;
+
       border-radius: 50%;
       background: #000000;
       color: white;
-      font-size: 22px;
-      font-weight: bold;
+
       display: flex;
       align-items: center;
       justify-content: center;
+
       transition: 0.2s;
     }
 
     .send-btn:hover {
       background: #1d4ed8;
+      transform: scale(1.05);
+    }
+
+    .send-icon {
+      font-size: 18px;
+      transform: rotate(-35deg);
+      margin-left: 2px;
+    }
+
+    .generating-icon {
+      display: none;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .generating-icon span {
+      width: 3px;
+      height: 14px;
+      background: white;
+      border-radius: 999px;
+      animation: soundWave 0.8s infinite ease-in-out;
+    }
+
+    .generating-icon span:nth-child(2) {
+      animation-delay: 0.15s;
+    }
+
+    .generating-icon span:nth-child(3) {
+      animation-delay: 0.3s;
+    }
+
+    .send-btn.generating .send-icon {
+      display: none;
+    }
+
+    .send-btn.generating .generating-icon {
+      display: flex;
+    }
+
+    .send-btn.disabled,
+    .send-btn:disabled {
+      opacity: 0.85;
+      cursor: not-allowed;
+    }
+
+    @keyframes soundWave {
+
+      0%,
+      100% {
+        height: 8px;
+      }
+
+      50% {
+        height: 18px;
+      }
+    }
+
+    .send-btn:hover {
+      background: #1d4ed8;
+    }
+
+    .send-btn.generating {
+      background: #2563eb;
+
+      box-shadow:
+        0 0 12px rgba(37, 99, 235, 0.7),
+        0 0 24px rgba(37, 99, 235, 0.4);
+
+      animation: pulseGlow 1.4s infinite;
+    }
+
+    @keyframes pulseGlow {
+
+      0% {
+        transform: scale(1);
+      }
+
+      50% {
+        transform: scale(1.08);
+      }
+
+      100% {
+        transform: scale(1);
+      }
     }
 
     .conversation-item {
@@ -322,7 +428,7 @@
 
         <div>
           <h1>Neo Local AI</h1>
-          <span>gemma4:26b • Local • Ollama</span>
+          <span>gemma3:4b • Local • Ollama</span>
         </div>
 
         <div class="status-pill">
@@ -338,7 +444,13 @@
         <textarea id="message" placeholder="Manda a boa..."></textarea>
 
         <button class="send-btn" onclick="sendMessage()" title="Enviar">
-          ↑
+          <span class="send-icon">➤</span>
+
+          <span class="generating-icon">
+            <span></span>
+            <span></span>
+            <span></span>
+          </span>
         </button>
 
       </div>
@@ -350,6 +462,7 @@
   <script>
     let history = [];
     let activeConversation = null;
+    let isGenerating = false;
 
     function formatConversationName(fileName) {
       return fileName.replace(".json", "");
@@ -542,7 +655,12 @@
       const input = document.getElementById("message");
       const message = input.value.trim();
 
-      if (!message) return;
+      isGenerating = true;
+
+      const sendButton = document.querySelector(".send-btn");
+      sendButton.disabled = true;
+      sendButton.classList.add("disabled");
+      sendButton.classList.add("generating");
 
       renderMessage("user", message);
 
@@ -552,6 +670,8 @@
       });
 
       input.value = "";
+
+      input.style.height = "90px";
 
       const thinkingId = addThinking();
 
@@ -602,6 +722,12 @@
         );
       }
 
+      isGenerating = false;
+
+      sendButton.disabled = false;
+      sendButton.classList.remove("disabled");
+      sendButton.classList.remove("generating");
+
       scrollToBottom();
     }
 
@@ -618,6 +744,19 @@
           sendMessage();
         }
       }
+    );
+
+    function autoResizeTextarea() {
+
+      textarea.style.height = "auto";
+
+      textarea.style.height =
+        textarea.scrollHeight + "px";
+    }
+
+    textarea.addEventListener(
+      "input",
+      autoResizeTextarea
     );
 
     loadConversations();
