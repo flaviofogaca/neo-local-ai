@@ -177,6 +177,59 @@ def handle_memory_action(response_text):
 
     return response_text
 
+def should_store_memory(user_message, ai_response):
+
+    combined = (
+        user_message + " " + ai_response
+    ).lower()
+
+    ignored_terms = [
+        "kkkk",
+        "kkk",
+        "bom dia",
+        "boa noite",
+        "oi",
+        "olá",
+        "valeu",
+        "beleza",
+        "ok",
+        "show",
+        "haha"
+    ]
+
+    if len(combined) < 80:
+        return False
+
+    for term in ignored_terms:
+        if combined.strip() == term:
+            return False
+
+    important_keywords = [
+        "projeto",
+        "memória",
+        "chromadb",
+        "api",
+        "python",
+        "ideia",
+        "objetivo",
+        "banco",
+        "frontend",
+        "backend",
+        "rag",
+        "embedding",
+        "vetorial",
+        "ollama",
+        "fastapi",
+        "interface",
+        "github"
+    ]
+
+    for keyword in important_keywords:
+        if keyword in combined:
+            return True
+
+    return False
+
 
 def ask_ollama(user_message, history=None):
     prompt = build_prompt(user_message, history)
@@ -300,13 +353,18 @@ def stream_ollama(user_message, history=None):
 
                 conversation_history.append({"role": "neo", "content": final_response})
 
-                save_vector_memory(
-                    f"Usuário: {user_message}\nNeo: {final_response}",
-                    {
-                        "type": "conversation",
-                        "source": active_conversation_file or "active_chat"
-                    }
-                )
+                if should_store_memory(
+                    user_message,
+                    final_response
+                ):
+
+                    save_vector_memory(
+                        f"Usuário: {user_message}\nNeo: {final_response}",
+                        {
+                            "type": "conversation",
+                            "source": active_conversation_file or "active_chat"
+                        }
+                    )
 
                 while len(conversation_history) > 10:
                     conversation_history.pop(0)
