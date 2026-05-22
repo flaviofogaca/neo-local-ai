@@ -152,33 +152,20 @@
       flex-shrink: 0;
     }
 
-    .send-btn.disabled,
-    .send-btn:disabled {
-      opacity: 0.45;
-      cursor: not-allowed;
-      transform: scale(0.95);
-    }
-
     textarea {
       width: 100%;
       min-height: 90px;
       max-height: 220px;
-
       border-radius: 12px;
-      padding: 14px 60px 14px 14px;
-
+      padding: 14px 110px 14px 14px;
       font-size: 16px;
       line-height: 1.5;
-
       resize: none;
       overflow-y: auto;
-
       border: 1px solid #374151;
       outline: none;
-
       background: #f9fafb;
       color: #111827;
-
       transition:
         border-color 0.2s,
         box-shadow 0.2s,
@@ -195,28 +182,55 @@
       cursor: pointer;
     }
 
+    .voice-btn {
+      position: absolute;
+      right: 58px;
+      bottom: 12px;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      border: none;
+      background: #111827;
+      color: white;
+      cursor: pointer;
+      transition: 0.2s;
+      font-size: 16px;
+    }
+
+    .voice-btn:hover {
+      background: #2563eb;
+      transform: scale(1.05);
+    }
+
+    .voice-btn.recording {
+      background: #dc2626;
+      animation: pulse 1s infinite;
+    }
+
     .send-btn {
       position: absolute;
       right: 12px;
       bottom: 12px;
-
       width: 36px;
       height: 36px;
-
       border-radius: 50%;
       background: #000000;
       color: white;
-
       display: flex;
       align-items: center;
       justify-content: center;
-
       transition: 0.2s;
     }
 
     .send-btn:hover {
       background: #1d4ed8;
       transform: scale(1.05);
+    }
+
+    .send-btn.disabled,
+    .send-btn:disabled {
+      opacity: 0.85;
+      cursor: not-allowed;
     }
 
     .send-icon {
@@ -247,59 +261,20 @@
       animation-delay: 0.3s;
     }
 
+    .send-btn.generating {
+      background: #2563eb;
+      box-shadow:
+        0 0 12px rgba(37, 99, 235, 0.7),
+        0 0 24px rgba(37, 99, 235, 0.4);
+      animation: pulseGlow 1.4s infinite;
+    }
+
     .send-btn.generating .send-icon {
       display: none;
     }
 
     .send-btn.generating .generating-icon {
       display: flex;
-    }
-
-    .send-btn.disabled,
-    .send-btn:disabled {
-      opacity: 0.85;
-      cursor: not-allowed;
-    }
-
-    @keyframes soundWave {
-
-      0%,
-      100% {
-        height: 8px;
-      }
-
-      50% {
-        height: 18px;
-      }
-    }
-
-    .send-btn:hover {
-      background: #1d4ed8;
-    }
-
-    .send-btn.generating {
-      background: #2563eb;
-
-      box-shadow:
-        0 0 12px rgba(37, 99, 235, 0.7),
-        0 0 24px rgba(37, 99, 235, 0.4);
-
-      animation: pulseGlow 1.4s infinite;
-    }
-
-    @keyframes pulseGlow {
-
-      0% {
-        transform: scale(1);
-      }
-
-      50% {
-        transform: scale(1.08);
-      }
-
-      100% {
-        transform: scale(1);
-      }
     }
 
     .conversation-item {
@@ -389,11 +364,49 @@
       animation-delay: 0.4s;
     }
 
-    @keyframes blink {
+    @keyframes soundWave {
+      0%, 100% {
+        height: 8px;
+      }
 
-      0%,
-      80%,
+      50% {
+        height: 18px;
+      }
+    }
+
+    @keyframes pulseGlow {
+      0% {
+        transform: scale(1);
+      }
+
+      50% {
+        transform: scale(1.08);
+      }
+
       100% {
+        transform: scale(1);
+      }
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(1);
+        opacity: 1;
+      }
+
+      50% {
+        transform: scale(1.08);
+        opacity: 0.8;
+      }
+
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    @keyframes blink {
+      0%, 80%, 100% {
         opacity: 0.25;
         transform: scale(0.8);
       }
@@ -407,11 +420,8 @@
 </head>
 
 <body>
-
   <div class="layout">
-
     <div class="sidebar">
-
       <h2>Neo</h2>
 
       <button class="new-chat-btn" onclick="newChat()">
@@ -419,29 +429,28 @@
       </button>
 
       <div id="conversation-list"></div>
-
     </div>
 
     <div class="main">
-
       <div class="chat-header">
-
         <div>
           <h1>Neo Local AI</h1>
-          <span>gemma3:4b • Local • Ollama</span>
+          <span>gemma3:12b • Local • Ollama</span>
         </div>
 
         <div class="status-pill">
           Online
         </div>
-
       </div>
 
       <div id="chat"></div>
 
       <div class="input-container">
-
         <textarea id="message" placeholder="Manda a boa..."></textarea>
+
+        <button class="voice-btn" onclick="startRecognition()" title="Falar">
+          🎤
+        </button>
 
         <button class="send-btn" onclick="sendMessage()" title="Enviar">
           <span class="send-icon">➤</span>
@@ -452,17 +461,16 @@
             <span></span>
           </span>
         </button>
-
       </div>
-
     </div>
-
   </div>
 
   <script>
     let history = [];
     let activeConversation = null;
     let isGenerating = false;
+    let isRecording = false;
+    let recognition = null;
 
     function formatConversationName(fileName) {
       return fileName.replace(".json", "");
@@ -526,7 +534,6 @@
     async function newChat() {
       history = [];
       activeConversation = null;
-
       document.getElementById("chat").innerHTML = "";
 
       await fetch("/new-chat", {
@@ -541,7 +548,6 @@
       const data = await response.json();
 
       const list = document.getElementById("conversation-list");
-
       list.innerHTML = "";
 
       data.conversations.forEach(file => {
@@ -556,7 +562,7 @@
             >
               ${formatConversationName(file)}
             </div>
-  
+
             <div class="conversation-actions">
               <button
                 class="rename-btn"
@@ -564,7 +570,7 @@
               >
                 ✏️
               </button>
-  
+
               <button
                 class="delete-btn"
                 onclick="event.stopPropagation(); deleteConversation('${file}')"
@@ -614,9 +620,7 @@
       const data = await response.json();
 
       const chat = document.getElementById("chat");
-
       chat.innerHTML = "";
-
       history = [];
 
       data.messages.forEach(msg => {
@@ -655,6 +659,8 @@
       const input = document.getElementById("message");
       const message = input.value.trim();
 
+      if (!message || isGenerating) return;
+
       isGenerating = true;
 
       const sendButton = document.querySelector(".send-btn");
@@ -670,11 +676,9 @@
       });
 
       input.value = "";
-
       input.style.height = "90px";
 
       const thinkingId = addThinking();
-
       let fullResponse = "";
 
       try {
@@ -698,11 +702,9 @@
           if (done) break;
 
           const chunk = decoder.decode(value, { stream: true });
-
           fullResponse += chunk;
 
           replaceThinking(thinkingId, fullResponse);
-
           scrollToBottom();
         }
 
@@ -747,11 +749,8 @@
     );
 
     function autoResizeTextarea() {
-
       textarea.style.height = "auto";
-
-      textarea.style.height =
-        textarea.scrollHeight + "px";
+      textarea.style.height = textarea.scrollHeight + "px";
     }
 
     textarea.addEventListener(
@@ -759,6 +758,69 @@
       autoResizeTextarea
     );
 
+    function setupSpeechRecognition() {
+      const SpeechRecognition =
+        window.SpeechRecognition ||
+        window.webkitSpeechRecognition;
+
+      const voiceBtn = document.querySelector(".voice-btn");
+
+      if (!SpeechRecognition) {
+        voiceBtn.disabled = true;
+        voiceBtn.title = "Reconhecimento de voz não suportado neste navegador";
+        voiceBtn.style.opacity = "0.4";
+        return;
+      }
+
+      recognition = new SpeechRecognition();
+
+      recognition.lang = "pt-BR";
+      recognition.continuous = false;
+      recognition.interimResults = false;
+
+      recognition.onresult = function (event) {
+        const texto = event.results[0][0].transcript;
+
+        textarea.value = texto;
+        textarea.dispatchEvent(new Event("input"));
+      };
+
+      recognition.onend = function () {
+        const voiceBtn = document.querySelector(".voice-btn");
+
+        isRecording = false;
+        voiceBtn.classList.remove("recording");
+      };
+
+      recognition.onerror = function () {
+        const voiceBtn = document.querySelector(".voice-btn");
+
+        isRecording = false;
+        voiceBtn.classList.remove("recording");
+      };
+    }
+
+    function startRecognition() {
+      const voiceBtn = document.querySelector(".voice-btn");
+
+      if (!recognition) {
+        return;
+      }
+
+      if (isRecording) {
+        recognition.stop();
+        isRecording = false;
+        voiceBtn.classList.remove("recording");
+        return;
+      }
+
+      isRecording = true;
+      voiceBtn.classList.add("recording");
+
+      recognition.start();
+    }
+
+    setupSpeechRecognition();
     loadConversations();
   </script>
 
