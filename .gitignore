@@ -23,6 +23,9 @@ Thumbs.db
 memory.json
 conversations/
 
+# Banco vetorial
+chroma_db/
+
 # Ambiente local
 .env
 .env.local
