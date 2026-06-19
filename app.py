@@ -661,7 +661,8 @@ def chat(request: ChatRequest):
 
     if not active_conversation_file:
         active_conversation_file = create_conversation_file()
-
+    
+    log("CHAT", f"Mensagem recebida: {request.message}")
     response = ask_ollama(request.message, conversation_history)
     response = clean_response(response)
 
