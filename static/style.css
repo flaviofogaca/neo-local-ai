@@ -888,6 +888,41 @@ pre code {
     box-shadow: 0 0 15px rgba(37, 99, 235, .25);
 }
 
+.deep-mode-btn {
+    background: rgba(255, 255, 255, 0.06);
+
+    border: 1px solid rgba(255, 255, 255, 0.12);
+
+    color: white;
+
+    padding: 8px 14px;
+
+    border-radius: 999px;
+
+    cursor: pointer;
+
+    transition: all .25s ease;
+}
+
+.deep-mode-btn:hover {
+    border-color: #a855f7;
+
+    box-shadow:
+        0 0 14px rgba(168, 85, 247, .35);
+}
+
+.deep-mode-btn.active {
+    background:
+        linear-gradient(135deg,
+            #7c3aed,
+            #a855f7);
+
+    border-color: transparent;
+
+    box-shadow:
+        0 0 18px rgba(168, 85, 247, .5);
+}
+
 ::-webkit-scrollbar {
     width: 10px;
 }

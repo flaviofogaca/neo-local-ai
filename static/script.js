@@ -3,6 +3,7 @@ let activeConversation = null;
 let isGenerating = false;
 let isRecording = false;
 let recognition = null;
+let deepMode = false;
 
 function formatConversationName(fileName) {
   return fileName.replace(".json", "");
@@ -166,7 +167,8 @@ async function renameConversation(oldName) {
     },
     body: JSON.stringify({
       old_name: oldName,
-      new_name: newName
+      new_name: newName,
+      deep_mode: deepMode
     })
   });
 
@@ -259,7 +261,8 @@ async function sendMessage() {
       },
       body: JSON.stringify({
         message: message,
-        history: history
+        history: history,
+        deep_mode: deepMode
       })
     });
 
@@ -376,6 +379,20 @@ function startRecognition() {
   voiceBtn.classList.add("recording");
 
   recognition.start();
+}
+
+function toggleDeepMode() {
+  deepMode = !deepMode;
+
+  const deepButton = document.getElementById("deep-mode-btn");
+
+  if (deepMode) {
+    deepButton.classList.add("active");
+    deepButton.innerText = "Deep Mode ON";
+  } else {
+    deepButton.classList.remove("active");
+    deepButton.innerText = "Deep Mode";
+  }
 }
 
 setupSpeechRecognition();

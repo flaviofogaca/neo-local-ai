@@ -41,8 +41,20 @@
           <span>gemma3:12b • Local • Ollama</span>
         </div>
 
-        <div class="status-pill">
-          Online
+        <div style="display:flex; gap:10px; align-items:center;">
+
+          <button
+            id="deep-mode-btn"
+            class="deep-mode-btn"
+            onclick="toggleDeepMode()"
+          >
+            Deep Mode
+          </button>
+        
+          <div class="status-pill">
+            Online
+          </div>
+        
         </div>
       </div>
 

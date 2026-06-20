@@ -22,10 +22,15 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     message: str
     history: Optional[List[ChatMessage]] = []
+    deep_mode: Optional[bool] = False
 
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
-MODEL = "gemma3:12b"
+DEFAULT_MODEL = "gemma3:12b"
+DEEP_MODEL = "gemma4:26b"
+
+def get_model(deep_mode=False):
+    return DEEP_MODEL if deep_mode else DEFAULT_MODEL
 
 OLLAMA_OPTIONS = {
     "temperature": 0.8,
@@ -493,11 +498,11 @@ def classify_memory(user_message, ai_response):
     }
 
 
-def ask_ollama(user_message, history=None):
+def ask_ollama(user_message, history=None, deep_mode=False):
     prompt = build_prompt(user_message, history)
 
     payload = {
-        "model": MODEL,
+        "model": get_model(deep_mode),
         "prompt": prompt,
         "stream": False,
         "options": OLLAMA_OPTIONS,
@@ -526,7 +531,7 @@ Mensagem:
 """
 
     payload = {
-        "model": MODEL,
+        "model": get_model(False),
         "prompt": prompt,
         "stream": False,
         "options": OLLAMA_OPTIONS,
@@ -580,7 +585,11 @@ def auto_rename_conversation(first_message):
     active_conversation_file = new_filename
 
 
-def stream_ollama(user_message, history=None):
+def stream_ollama(user_message, history=None, deep_mode=False):
+    log(
+    "DEFAULT_MODEL",
+    f"Usando modelo: {get_model(deep_mode)}"
+)
     global conversation_history
     global active_conversation_file
 
@@ -593,7 +602,7 @@ def stream_ollama(user_message, history=None):
     prompt = build_prompt(user_message, history)
 
     payload = {
-        "model": MODEL,
+        "model": DEFAULT_MODEL,
         "prompt": prompt,
         "stream": True,
         "options": OLLAMA_OPTIONS,
@@ -663,7 +672,11 @@ def chat(request: ChatRequest):
         active_conversation_file = create_conversation_file()
     
     log("CHAT", f"Mensagem recebida: {request.message}")
-    response = ask_ollama(request.message, conversation_history)
+    response = ask_ollama(
+    request.message,
+    conversation_history,
+    request.deep_mode
+)
     response = clean_response(response)
 
     conversation_history.append({
@@ -697,7 +710,11 @@ def chat(request: ChatRequest):
 @app.post("/chat-stream")
 def chat_stream(request: ChatRequest):
     return StreamingResponse(
-        stream_ollama(request.message, conversation_history),
+        stream_ollama(
+    request.message,
+    conversation_history,
+    request.deep_mode
+),
         media_type="text/plain"
     )
 
