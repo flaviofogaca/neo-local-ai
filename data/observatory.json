@@ -1,0 +1,19 @@
+{
+  "items": [
+    {
+      "name": "LG UltraWide 34",
+      "current_price": 1851.55,
+      "target_price": 1750.0,
+      "url": "https://www.lg.com/br/monitores/ultrawide/",
+      "status": "monitorando"
+    },
+    {
+      "name": "Samsung Odyssey G5 34",
+      "current_price": 1999.0,
+      "target_price": 1900.0,
+      "url": "https://www.samsung.com/br/monitors/",
+      "status": "monitorando"
+    }
+  ],
+  "last_update": "07/07/2026 11:25"
+}

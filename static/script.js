@@ -96,6 +96,59 @@ function addThinking() {
   return thinkingId;
 }
 
+let searchTimeout = null;
+
+function searchConversations() {
+  const input = document.getElementById("conversation-search");
+  const query = input.value.trim();
+
+  clearTimeout(searchTimeout);
+
+  searchTimeout = setTimeout(async () => {
+    if (!query) {
+      await loadConversations();
+      return;
+    }
+
+    const response = await fetch(
+      `/search-conversations?query=${encodeURIComponent(query)}`
+    );
+
+    const data = await response.json();
+
+    renderSearchResults(data.results);
+  }, 250);
+}
+
+function renderSearchResults(results) {
+  const list = document.getElementById("conversation-list");
+
+  list.innerHTML = "";
+
+  if (results.length === 0) {
+    list.innerHTML = `
+      <div class="empty-search">
+        Nenhuma conversa encontrada.
+      </div>
+    `;
+    return;
+  }
+
+  results.forEach(item => {
+    const encodedFile = encodeURIComponent(item.filename);
+    const activeClass = activeConversation === item.filename ? "active" : "";
+
+    list.innerHTML += `
+      <div class="conversation-item ${activeClass}">
+        <div class="conversation-name" onclick="loadConversation('${encodedFile}')">
+          ${item.title}
+          <small class="conversation-preview">${item.preview}</small>
+        </div>
+      </div>
+    `;
+  });
+}
+
 function replaceThinking(id, response) {
   const element = document.getElementById(id);
 
@@ -394,6 +447,28 @@ function toggleDeepMode() {
     deepButton.innerText = "Deep Mode";
   }
 }
+
+
+function updateClock() {
+  const clockElement = document.getElementById("clock");
+
+  if (!clockElement) {
+    return;
+  }
+
+  const now = new Date();
+
+  clockElement.innerText = now.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+updateClock();
+setInterval(updateClock, 1000);
 
 setupSpeechRecognition();
 loadConversations();

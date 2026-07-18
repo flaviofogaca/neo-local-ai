@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Neo Central</title>
+    <style>
+        body {
+            margin: 0;
+            background: #0b0f19;
+            color: white;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        .title {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: #151b2e;
+            border-radius: 18px;
+            padding: 18px;
+            margin-bottom: 14px;
+        }
+
+        .label {
+            color: #8ea0c8;
+            font-size: 14px;
+        }
+
+        .value {
+            font-size: 22px;
+            margin-top: 6px;
+        }
+
+        button {
+            width: 100%;
+            padding: 18px;
+            border: none;
+            border-radius: 18px;
+            background: #3b82f6;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 22px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .neo-orb {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #8be9ff, #3b82f6 45%, #1e1b4b 80%);
+            box-shadow: 0 0 18px rgba(59, 130, 246, 0.8);
+        }
+
+        .subtitle {
+            font-size: 13px;
+            color: #8ea0c8;
+        }
+
+        .clock {
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .quick-actions button {
+            padding: 14px;
+            font-size: 15px;
+        }
+
+        .shortcuts {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .shortcuts button {
+
+            background: #1d2438;
+
+            border: none;
+
+            border-radius: 16px;
+
+            padding: 18px 10px;
+
+            color: white;
+
+            display: flex;
+
+            flex-direction: column;
+
+            align-items: center;
+
+            gap: 10px;
+
+            cursor: pointer;
+
+            transition: .2s;
+        }
+
+        .shortcuts button:hover {
+
+            transform: translateY(-3px);
+
+            background: #26314d;
+
+        }
+
+        .shortcuts i {
+
+            font-size: 34px;
+
+        }
+
+        .shortcuts span {
+
+            font-size: 14px;
+
+        }
+
+        .obs-item {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .obs-item:first-child {
+            border-top: none;
+            padding-top: 0;
+        }
+
+        .obs-name {
+            font-size: 16px;
+            color: #c7d2fe;
+            margin-bottom: 4px;
+        }
+
+        .obs-price {
+            font-size: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <div class="brand">
+            <div class="neo-orb"></div>
+            <div>
+                <div class="title">Neo Home</div>
+                <div class="subtitle">Online</div>
+            </div>
+        </div>
+
+        <div id="clock" class="clock">--:--</div>
+    </div>
+
+    <div class="card">
+        <div class="label">Hoje</div>
+        <div class="value" id="date"></div>
+    </div>
+
+    <div class="card">
+        <div class="label">Clima</div>
+        <div class="value" id="weather">Carregando...</div>
+    </div>
+
+    <div class="card">
+        <div class="label">👀 Observatório</div>
+        <div class="value" id="observatory">Carregando...</div>
+    </div>
+
+    <div class="card">
+        <div class="label">Atalhos</div>
+
+        <div class="shortcuts">
+
+            <button onclick="window.open('https://youtube.com')">
+                <i class="fa-brands fa-youtube"></i>
+                <span>YouTube</span>
+            </button>
+
+            <button onclick="window.open('https://open.spotify.com')">
+                <i class="fa-brands fa-spotify"></i>
+                <span>Spotify</span>
+            </button>
+
+            <button onclick="window.location.href='/'">
+                <i class="fa-solid fa-robot"></i>
+                <span>Neo</span>
+            </button>
+
+        </div>
+    </div>
+
+    <script>
+        document.getElementById("date").innerText =
+            new Date().toLocaleDateString("pt-BR", {
+                weekday: "long",
+                day: "2-digit",
+                month: "long"
+            });
+
+
+        function updateClock() {
+            document.getElementById("clock").innerText =
+                new Date().toLocaleTimeString("pt-BR", {
+                    hour: "2-digit",
+                    minute: "2-digit"
+                });
+        }
+
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        async function loadWeather() {
+            try {
+                const response = await fetch("/api/weather");
+                const data = await response.json();
+
+                document.getElementById("weather").innerText =
+                    `${data.city} · ${data.temp}°C · ${data.description}`;
+            } catch (error) {
+                document.getElementById("weather").innerText =
+                    "Clima indisponível";
+            }
+        }
+
+        loadWeather();
+
+        async function loadOpportunity() {
+            try {
+                const response = await fetch("/api/opportunity");
+                const data = await response.json();
+
+                document.getElementById("opportunity").innerText =
+                    `R$ ${data.current_price.toFixed(2).replace(".", ",")} · Meta R$ ${data.target_price.toFixed(2).replace(".", ",")}`;
+            } catch (error) {
+                document.getElementById("opportunity").innerText = "Indisponível";
+            }
+        }
+
+        loadOpportunity();
+
+        async function loadObservatory() {
+            try {
+                const response = await fetch("/api/observatory");
+                const data = await response.json();
+
+                if (!data.items || data.items.length === 0) {
+                    document.getElementById("observatory").innerText =
+                        "Nenhum item monitorado";
+                    return;
+                }
+
+                const html = data.items.map(item => {
+                    const price = item.current_price.toLocaleString("pt-BR", {
+                        style: "currency",
+                        currency: "BRL"
+                    });
+
+                    const target = item.target_price.toLocaleString("pt-BR", {
+                        style: "currency",
+                        currency: "BRL"
+                    });
+
+                    return `
+                <div class="obs-item">
+                    <div class="obs-name">${item.name}</div>
+                    <div class="obs-price">${price} · Meta ${target}</div>
+                </div>
+            `;
+                }).join("");
+
+                document.getElementById("observatory").innerHTML = html;
+            } catch (error) {
+                document.getElementById("observatory").innerText =
+                    "Observatório indisponível";
+            }
+        }
+
+        loadObservatory();
+
+    </script>
+</body>
+
+</html>

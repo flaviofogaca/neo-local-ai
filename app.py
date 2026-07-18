@@ -3,6 +3,9 @@ import requests
 import webbrowser
 import threading
 import os
+import urllib.request
+import json
+from fastapi.responses import FileResponse
 from datetime import datetime
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, StreamingResponse
@@ -11,8 +14,31 @@ from typing import List, Optional
 from vector_memory import save_memory as save_vector_memory
 from vector_memory import search_memory
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from pydantic import BaseModel
+from pathlib import Path
+import json
 import uvicorn
 
+DATA_DIR = Path("data")
+DATA_DIR.mkdir(exist_ok=True)
+
+class OpportunityUpdate(BaseModel):
+    title: str = "Oportunidade"
+    current_price: float
+    target_price: float
+    status: str = "Aguardando promoção"
+
+class ObservatoryItem(BaseModel):
+    name: str
+    current_price: float
+    target_price: Optional[float] = None
+    url: Optional[str] = None
+    status: str = "monitorando"
+
+
+class ObservatoryUpdate(BaseModel):
+    items: List[ObservatoryItem]
 
 class ChatMessage(BaseModel):
     role: str
@@ -61,6 +87,8 @@ def load_memory():
 def save_memory(new_data):
     memory = load_memory()
     memory.update(new_data)
+
+
 
     with open("memory.json", "w", encoding="utf-8") as file:
         json.dump(memory, file, ensure_ascii=False, indent=2)
@@ -232,6 +260,16 @@ def build_prompt(user_message, history=None):
     memory = load_memory()
     history_text = build_history_text(history)
 
+    now = datetime.now()
+    current_date = now.strftime("%d/%m/%Y")
+    current_time = now.strftime("%H:%M")
+    current_weekday = now.strftime("%A")
+
+    memory[current_date] = {
+        "weekday": current_weekday,
+        "time": current_time,
+    }
+
     vector_context = ""
 
     if should_use_vector_memory(user_message) and not detect_prompt_injection(user_message):
@@ -239,6 +277,19 @@ def build_prompt(user_message, history=None):
 
     system_prompt = f"""
 Você é o Neo, assistente pessoal do Flávio.
+Data atual: {current_date}
+Horário atual: {current_time}
+Dia da semana: {current_weekday}
+
+Você possui consciência temporal básica.
+Use a data atual como referência quando o usuário mencionar hoje, ontem, amanhã, esta semana, mês passado, recentemente ou expressões parecidas.
+
+Não diga que foi ativado recentemente,
+não diga que acabou de ser criado,
+não invente uma data de criação.
+
+Quando perguntado sobre sua origem,
+utilize apenas as informações presentes na memória do projeto.
 
 Use estas informações como memória persistente interna:
 {json.dumps(memory, ensure_ascii=False, indent=2)}
@@ -656,6 +707,148 @@ def stream_ollama(user_message, history=None, deep_mode=False):
 
                 break
 
+
+def format_conversation_title(filename):
+    return filename.replace(".json", "")
+
+@app.post("/api/update-observatory")
+def update_observatory(payload: ObservatoryUpdate):
+    data = payload.model_dump()
+    data["last_update"] = datetime.now().strftime("%d/%m/%Y %H:%M")
+
+    file_path = DATA_DIR / "observatory.json"
+
+    with open(file_path, "w", encoding="utf-8") as file:
+        json.dump(data, file, ensure_ascii=False, indent=2)
+
+    return {
+        "ok": True,
+        "saved": str(file_path),
+        "data": data
+    }
+
+
+@app.get("/api/observatory")
+def get_observatory():
+    file_path = DATA_DIR / "observatory.json"
+
+    if not file_path.exists():
+        return {
+            "items": [],
+            "last_update": None
+        }
+
+    with open(file_path, "r", encoding="utf-8") as file:
+        return json.load(file)
+
+@app.post("/api/update-opportunity")
+def update_opportunity(payload: OpportunityUpdate):
+    data = payload.model_dump()
+    data["last_update"] = datetime.now().strftime("%d/%m/%Y %H:%M")
+
+    file_path = DATA_DIR / "opportunity.json"
+
+    with open(file_path, "w", encoding="utf-8") as file:
+        json.dump(data, file, ensure_ascii=False, indent=2)
+
+    return {
+        "ok": True,
+        "saved": str(file_path),
+        "data": data
+    }
+
+
+@app.get("/api/opportunity")
+def get_opportunity():
+    file_path = DATA_DIR / "opportunity.json"
+
+    if not file_path.exists():
+        return {
+            "title": "Oportunidade",
+            "current_price": None,
+            "target_price": 250.00,
+            "status": "Aguardando primeira atualização",
+            "last_update": None
+        }
+
+    with open(file_path, "r", encoding="utf-8") as file:
+        return json.load(file)
+
+@app.get("/dashboard")
+def dashboard():
+    return FileResponse("dashboard.html")
+
+
+@app.get("/search-conversations")
+def search_conversations(query: str):
+    results = []
+
+    if not query:
+        return {"results": []}
+
+    query_lower = query.lower()
+
+    for filename in os.listdir(CONVERSATIONS_DIR):
+        if not filename.endswith(".json"):
+            continue
+
+        filepath = os.path.join(CONVERSATIONS_DIR, filename)
+
+        try:
+            with open(filepath, "r", encoding="utf-8") as file:
+                data = json.load(file)
+
+            messages = data.get("messages", [])
+            combined_text = " ".join(
+                message.get("content", "")
+                for message in messages
+            ).lower()
+
+            if query_lower in filename.lower() or query_lower in combined_text:
+                preview = ""
+
+                for message in messages:
+                    content = message.get("content", "")
+
+                    if query_lower in content.lower():
+                        preview = content[:160]
+                        break
+
+                results.append({
+                    "filename": filename,
+                    "title": format_conversation_title(filename),
+                    "preview": preview or "Correspondência encontrada na conversa."
+                })
+
+        except Exception as error:
+            log("SEARCH", f"Erro ao buscar em {filename}: {error}")
+
+    return {"results": results}
+
+
+@app.get("/api/weather")
+def weather():
+    url = "https://wttr.in/Sao%20Marcos,RS?format=j1"
+
+    with urllib.request.urlopen(url) as response:
+        data = json.loads(response.read().decode())
+
+    current = data["current_condition"][0]
+
+    return {
+        "city": "São Marcos",
+        "temp": current["temp_C"],
+        "feels_like": current["FeelsLikeC"],
+        "description": current["lang_pt"][0]["value"] if "lang_pt" in current else current["weatherDesc"][0]["value"],
+        "humidity": current["humidity"]
+    }
+
+@app.get("/api/opportunity")
+def opportunity():
+    import json
+
+    with open("n8n/n8n_data/opportunity.json", "r", encoding="utf-8") as file:
+        return json.load(file)
 
 @app.get("/", response_class=HTMLResponse)
 def home():

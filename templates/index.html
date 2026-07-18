@@ -8,7 +8,7 @@
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
   <link rel="stylesheet" href="static/style.css">
-  
+
 </head>
 
 <body>
@@ -43,18 +43,14 @@
 
         <div style="display:flex; gap:10px; align-items:center;">
 
-          <button
-            id="deep-mode-btn"
-            class="deep-mode-btn"
-            onclick="toggleDeepMode()"
-          >
+          <button id="deep-mode-btn" class="deep-mode-btn" onclick="toggleDeepMode()">
             Deep Mode
           </button>
-        
+
           <div class="status-pill">
             Online
           </div>
-        
+
         </div>
       </div>
 
@@ -75,6 +71,10 @@
 
       </div>
 
+      <div class="search-box">
+        <input id="conversation-search" type="text" placeholder="Buscar conversas..." oninput="searchConversations()" />
+      </div>
+
       <div class="input-container">
         <textarea id="message" placeholder="Manda a boa..."></textarea>
 
@@ -89,6 +89,8 @@
           </button>
 
           <div class="input-divider"></div>
+
+          
 
           <button class="send-btn" onclick="sendMessage()" title="Enviar">
             <span class="send-icon">
