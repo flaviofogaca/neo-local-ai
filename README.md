@@ -1,6 +1,10 @@
 # Neo
 
-Neo é um assistente pessoal local desenvolvido com FastAPI, Ollama e ChromaDB.
+> A private AI assistant that remembers, understands and evolves.
+
+Neo é um assistente pessoal local focado em privacidade, memória persistente e inteligência para desenvolvimento de software.
+
+Construído com FastAPI, Ollama e ChromaDB, o projeto evolui continuamente para se tornar um agente capaz de compreender contexto, código-fonte e histórico de conversas sem depender de serviços em nuvem.
 
 O objetivo do projeto é criar um agente capaz de manter contexto, armazenar memórias relevantes e evoluir progressivamente para se tornar um assistente pessoal completo.
 
@@ -8,30 +12,40 @@ O objetivo do projeto é criar um agente capaz de manter contexto, armazenar mem
 
 ## Funcionalidades
 
-### Conversação
+### 💬 Conversação
 
 - Chat em tempo real
 - Streaming de respostas
 - Histórico de conversas
-- Renomeação automática de chats
-- Interface moderna inspirada em aplicações de IA
+- Renomeação automática
+- Deep Mode
 
-### Memória
+### 🧠 Memória
 
 - Memória persistente em JSON
-- Memória vetorial com ChromaDB
+- Memória vetorial
 - Recuperação contextual (RAG)
-- Busca inteligente de contexto
-- Filtro de relevância para evitar memórias incorretas
+- Busca semântica
+- Filtro de relevância
+- Proteção contra Prompt Injection
 
-### Interface
+### 💻 Inteligência para Repositórios
+
+- Repository Reader
+- Repository Indexer
+- Chunking inteligente
+- Embeddings de código
+- Busca híbrida (vetorial + literal)
+- Ranking de resultados
+
+### 🎙 Interface
 
 - Glassmorphism
-- Sidebar de conversas
 - Empty State
-- Scrollbar personalizada
-- Avatares
-- Animações suaves
+- Sidebar
+- Reconhecimento de voz
+- Auto Resize
+- Markdown
 
 ### Voz
 
@@ -40,96 +54,128 @@ O objetivo do projeto é criar um agente capaz de manter contexto, armazenar mem
 
 ---
 
-## Arquitetura
-
-```
-Neo
-│
-├── FastAPI
-├── Ollama
-│   └── gemma3:12b
-│
-├── ChromaDB
-│   └── Memória vetorial
-│
-├── JSON Memory
-│   └── Perfil persistente
-│
-└── Frontend
-    ├── HTML
-    ├── CSS
-    └── JavaScript
-```
+Usuário
+    │
+    ▼
+Frontend (HTML / JS)
+    │
+    ▼
+FastAPI
+    │
+    ├───────────────┐
+    ▼               ▼
+Conversation     Repository
+ History          Search
+    │               │
+    ▼               ▼
+Vector Memory   Repository Indexer
+    │               │
+    └──────┬────────┘
+           ▼
+        ChromaDB
+           │
+           ▼
+         Ollama
 
 ---
 
-## Estrutura do Projeto
-
-```text
 Neo Memory/
 │
 ├── app.py
 ├── vector_memory.py
+├── repo_reader.py
+├── repo_indexer.py
 ├── memory.json
 ├── requirements.txt
-├── README.md
-│
-├── templates/
-│   └── index.html
 │
 ├── static/
-│   ├── style.css
-│   └── script.js
-│
-├── tests/
-│
+├── templates/
 ├── conversations/
-│
 ├── chroma_db/
 │
-└── legacy/
-```
+├── tests/
+└── README.md
 
 ---
 
 ## Tecnologias
 
-- Python
+- Python 3
 - FastAPI
 - Ollama
-- Gemma 3 12B
+- Gemma 3 / Gemma 4
 - ChromaDB
 - HTML
 - CSS
 - JavaScript
+- Markdown
+- Fetch API
 
 ---
 
-## Roadmap V2
+## Roadmap
 
-### Inteligência
+### ✅ Sprint 1
 
-- [ ] Deep Mode (Gemma 26B)
-- [ ] Consciência temporal
-- [ ] Memória episódica
-- [ ] Skills dinâmicas
+- Chat
+- Histórico
+- Memória JSON
 
-### Desenvolvimento
+### ✅ Sprint 2
 
-- [ ] Leitura de repositórios GitHub
-- [ ] Leitura de código local
-- [ ] Sugestão automática de melhorias
-- [ ] Edição assistida de arquivos
+- ChromaDB
+- Memória Vetorial
+- RAG
 
-### Integrações
+### ✅ Sprint 3
 
-- [ ] N8N
-- [ ] Monitoramento de e-mails
-- [ ] Calendário
-- [ ] Notificações
+- Streaming
+- Deep Mode
+- Prompt Injection
+
+### ✅ Sprint 4
+
+- Repository Reader
+- Repository Indexer
+- Hybrid Search
+
+### 🚧 Sprint 5
+
+- Repository Reasoner
+- Repository Chat
+- Repository Explain
+- Repository Refactor
+
+### 🔮 Futuro
+
+- GitHub Integration
+- Local File Editing
+- Multi-Agent
+- Skills
+- Calendário
+- Email
+- N8N
 
 ---
 
 ## Status
 
-Neo V1.0 — Stable Release
+Versão Atual
+
+Neo V1.1
+
+### Principais recursos
+
+✅ Streaming
+
+✅ Deep Mode
+
+✅ Memória Vetorial
+
+✅ Repository Intelligence Engine V1
+
+🚧 Repository Reasoner
+
+🚧 GitHub Intelligence
+
+🚧 Multi-Agent
